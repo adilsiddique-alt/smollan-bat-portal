@@ -142,7 +142,8 @@ if view_mode == "Store Upload Portal":
         st.info(f"📋 **Target Quota:** This location requires **{required_images} unique display images** for successful logging.")
 
 # Read the API key securely from the cloud environment secrets
-        client = genai.Client(api_key=st.secrets["AQ.Ab8RN6JIJ6vIcqhbvDZyTNPa62TECGY_Mgt8Om-GumzDYPrmsw"])
+# Change this line to use a variable name/label, NOT the real key string
+        client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
 
         uploaded_files = st.file_uploader(
             "Select display capture files:", 
