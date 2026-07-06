@@ -22,18 +22,17 @@ st.markdown("""
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
     
-    /* 🚫 HIDE THE DEPLOYER TOOLBAR COMPLETELY (Removes Fork, GitHub & Status Header) */
+    /* HIDE THE DEPLOYER TOOLBAR COMPLETELY (Removes Fork, GitHub & Status Header) */
     header[data-testid="stHeader"] {
         display: none !important;
     }
     
-    /* 1. SLEEK SIDEBAR NAVIGATION PACKAGING */
+    /* SLEEK SIDEBAR NAVIGATION PACKAGING */
     [data-testid="stSidebar"] {
         background-color: #090D16 !important; 
         border-right: 1px solid #1E293B;
     }
     
-    /* Style the Navigation Menu header text */
     div[data-testid="stRadio"] [data-testid="stWidgetLabel"] p {
         color: #64748B !important;
         font-size: 11px !important;
@@ -43,12 +42,10 @@ st.markdown("""
         margin-bottom: 12px !important;
     }
     
-    /* Tighten the spacing between button options */
     div[data-testid="stRadio"] > div {
         gap: 10px !important; 
     }
     
-    /* Transform options into wide, clean menu buttons */
     div[data-testid="stRadio"] label {
         display: flex !important;
         align-items: center !important;
@@ -62,7 +59,6 @@ st.markdown("""
         cursor: pointer;
     }
     
-    /* Active State styling (Smollan operational green glow) */
     div[data-testid="stRadio"] label:has(input[checked]) {
         border-color: #10B981 !important;
         background: linear-gradient(135deg, #10B981 0%, #059669 100%) !important;
@@ -71,19 +67,17 @@ st.markdown("""
         box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
     }
     
-    /* Target and erase ONLY the custom radio circle icon cleanly */
     div[data-testid="stCustomControl"] {
         display: none !important;
     }
     
-    /* Enforce clear, readable font positioning for button text */
     div[data-testid="stRadio"] label div[data-testid="stMarkdownContainer"] p {
         margin: 0px !important;
         font-size: 14px !important;
         color: inherit !important;
     }
 
-    /* 2. MAIN INTERFACE CARD STYLE */
+    /* MAIN INTERFACE CARD STYLE */
     div[data-testid="stVerticalBlock"] > div:has(div.stSelectbox) {
         background-color: #1E293B; 
         padding: 24px;
@@ -109,13 +103,6 @@ st.markdown("""
     div.stButton > button:hover {
         transform: translateY(-1px);
         box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
-    }
-    
-    /* File Dropzone Style */
-    section[data-testid="stFileUploadDropzone"] {
-        background-color: #0F172A !important;
-        border: 2px dashed #10B981 !important;
-        border-radius: 10px !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -145,112 +132,113 @@ view_mode = st.sidebar.radio("Navigation Menu", ["Store Upload Portal", "Smollan
 if view_mode == "Store Upload Portal":
     st.markdown("<p style='color: #10B981; font-weight: bold; margin-bottom: -10px;'>🌐 SMOLLAN FIELD OPERATIONS</p>", unsafe_allow_html=True)
     st.title("📸 BAT Execution Portal")
-    st.write("Please select your outlet below and upload compliant merchandising execution images.")
+    st.write("Please select your outlet below and use your mobile camera to take fresh execution images.")
     st.markdown("---")
     
     selected_store = st.selectbox("Select your Store:", ["Select a store..."] + ALL_STORES)
 
     if selected_store != "Select a store...":
         required_images = int(STORE_QUOTAS[selected_store])
-        st.info(f"📋 **Target Quota:** This location requires **{required_images} unique display images** for successful logging.")
+        st.info(f"📋 **Target Quota:** This location requires **{required_images} live camera captures** for successful logging.")
 
-        # Secure client setup reading variables from hidden dashboard secrets
         client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"]) 
 
-        uploaded_files = st.file_uploader(
-            "Select display capture files:", 
-            type=["jpg", "jpeg", "png"], 
-            accept_multiple_files=True
-        )
+        # DYNAMIC CAMERA GENERATION BLOCK
+        captured_images = []
+        seen_hashes = set()
+        duplicate_count = 0
 
-        if uploaded_files:
-            unique_files = []
-            seen_hashes = set()
-            duplicate_count = 0
-
-            for file in uploaded_files:
-                file_bytes = file.read()
+        st.markdown("### 📷 Complete Your Check-ins:")
+        for i in range(required_images):
+            # Render individual sequential phone camera shutters
+            photo = st.camera_input(f"Capture Display View {i+1} of {required_images}", key=f"camera_slot_{i}")
+            
+            if photo:
+                file_bytes = photo.read()
                 file_hash = hashlib.md5(file_bytes).hexdigest()
-                file.seek(0)
+                photo.seek(0)
                 
+                # Double-check that they didn't just point the phone at the same static view twice
                 if file_hash not in seen_hashes:
                     seen_hashes.add(file_hash)
-                    unique_files.append(file)
+                    captured_images.append(photo)
                 else:
                     duplicate_count += 1
 
-            if duplicate_count > 0:
-                st.warning(f"⚠️ Flagged and removed {duplicate_count} duplicate file uploads.")
+        if duplicate_count > 0:
+            st.warning("⚠️ Warning: Identical snapshot layout detected. Please capture distinct matching visual segments.")
 
-            st.write(f"Validated unique images: **{len(unique_files)} / {required_images}**")
+        # Display progress tracking bar text
+        st.write(f"Validated unique captures: **{len(captured_images)} / {required_images}**")
 
-            if st.button("🚀 Run Quality Control & Submit Audit"):
-                if len(unique_files) < required_images:
-                    st.error(f"❌ Submission denied. You have provided {len(unique_files)} unique image(s), but this store profile requires exactly {required_images}.")
-                else:
-                    all_passed = True
-                    temp_results = []
+        if st.button("🚀 Run Quality Control & Submit Audit"):
+            if len(captured_images) < required_images:
+                st.error(f"❌ Submission denied. You have only captured {len(captured_images)} layout views, but this profile requires exactly {required_images} completed views.")
+            else:
+                all_passed = True
+                temp_results = []
+                
+                for index, file in enumerate(captured_images):
+                    st.markdown(f"### 🔍 Auditing Capture {index + 1}...")
+                    img = Image.open(file)
+                    st.image(img, width=320)
                     
-                    for index, file in enumerate(unique_files):
-                        st.markdown(f"### 🔍 Auditing Image {index + 1}...")
-                        img = Image.open(file)
-                        st.image(img, width=320)
-                        
-                        try:
-                            with open("prompt.txt", "r", encoding="utf-8") as f:
-                                prompt = f.read()
-                        except FileNotFoundError:
-                            st.error("Missing rule configuration file: prompt.txt")
-                            st.stop()
-                        
-                        with st.spinner(f"AI inspecting parameters on image {index + 1}..."):
-                            time.sleep(5)  
-                            response = client.models.generate_content(
-                                model='gemini-2.5-flash',
-                                contents=[img, prompt]
-                            )
-                        
-                        ai_report = response.text
-                        
-                        if "STATUS: APPROVED" in ai_report:
-                            st.success(f"Image {index + 1}: COMPLIANT")
-                            st.text_area(f"Audit Summary {index + 1}:", value=ai_report, height=100, key=f"rep_{index}")
-                            temp_results.append({"file": file, "img_obj": img, "report": ai_report})
-                        else:
-                            st.error(f"Image {index + 1}: NON-COMPLIANT")
-                            st.text_area(f"Correction Breakdown {index + 1}:", value=ai_report, height=100, key=f"rep_{index}")
-                            all_passed = False
+                    try:
+                        with open("prompt.txt", "r", encoding="utf-8") as f:
+                            prompt = f.read()
+                        replace_rules = True
+                    except FileNotFoundError:
+                        st.error("Missing rule configuration file: prompt.txt")
+                        st.stop()
                     
-                    st.markdown("---")
-                    if all_passed:
-                        now = datetime.now()
-                        timestamp = now.strftime("%Y-%m-%d_%H-%M-%S")
-                        
-                        current_month_folder = now.strftime("%Y-%m")
-                        target_monthly_path = os.path.join(STORAGE_FOLDER, current_month_folder)
-                        
-                        if not os.path.exists(target_monthly_path):
-                            os.makedirs(target_monthly_path)
-
-                        clean_store_name = selected_store.replace(" ", "_").replace("(", "").replace(")", "")
-
-                        for i, result in enumerate(temp_results):
-                            new_filename = f"{clean_store_name}_{timestamp}_img{i+1}.jpg"
-                            save_path = os.path.join(target_monthly_path, new_filename)
-                            result["img_obj"].convert('RGB').save(save_path, "JPEG")
-                            
-                            file_exists = os.path.isfile(DB_FILE)
-                            with open(DB_FILE, mode='a', newline='', encoding='utf-8') as csv_file:
-                                writer = csv.writer(csv_file)
-                                if not file_exists:
-                                    writer.writerow(["Timestamp", "Store", "Image Folder Path", "Image Name", "AI Report Summary"])
-                                
-                                short_report = result["report"].replace("\n", " | ")
-                                writer.writerow([timestamp, selected_store, current_month_folder, new_filename, short_report])
-                        
-                        st.success(f"💾 ARCHIVED! Verification complete. Images filed securely under directory: /{current_month_folder}")
+                    with st.spinner(f"AI inspecting parameters on image {index + 1}..."):
+                        time.sleep(5)  
+                        response = client.models.generate_content(
+                            model='gemini-2.5-flash',
+                            contents=[img, prompt]
+                        )
+                    
+                    ai_report = response.text
+                    
+                    if "STATUS: APPROVED" in ai_report:
+                        st.success(f"Capture {index + 1}: COMPLIANT")
+                        st.text_area(f"Audit Summary {index + 1}:", value=ai_report, height=100, key=f"rep_{index}")
+                        temp_results.append({"file": file, "img_obj": img, "report": ai_report})
                     else:
-                        st.error("❌ Process Halting. One or more images failed the compliance rubric.")
+                        st.error(f"Capture {index + 1}: NON-COMPLIANT")
+                        st.text_area(f"Correction Breakdown {index + 1}:", value=ai_report, height=100, key=f"rep_{index}")
+                        all_passed = False
+                
+                st.markdown("---")
+                if all_passed:
+                    now = datetime.now()
+                    timestamp = now.strftime("%Y-%m-%d_%H-%M-%S")
+                    
+                    current_month_folder = now.strftime("%Y-%m")
+                    target_monthly_path = os.path.join(STORAGE_FOLDER, current_month_folder)
+                    
+                    if not os.path.exists(target_monthly_path):
+                        os.makedirs(target_monthly_path)
+
+                    clean_store_name = selected_store.replace(" ", "_").replace("(", "").replace(")", "")
+
+                    for i, result in enumerate(temp_results):
+                        new_filename = f"{clean_store_name}_{timestamp}_img{i+1}.jpg"
+                        save_path = os.path.join(target_monthly_path, new_filename)
+                        result["img_obj"].convert('RGB').save(save_path, "JPEG")
+                        
+                        file_exists = os.path.isfile(DB_FILE)
+                        with open(DB_FILE, mode='a', newline='', encoding='utf-8') as csv_file:
+                            writer = csv.writer(csv_file)
+                            if not file_exists:
+                                writer.writerow(["Timestamp", "Store", "Image Folder Path", "Image Name", "AI Report Summary"])
+                            
+                            short_report = result["report"].replace("\n", " | ")
+                            writer.writerow([timestamp, selected_store, current_month_folder, new_filename, short_report])
+                    
+                    st.success(f"💾 ARCHIVED! Verification complete. Images filed securely under directory: /{current_month_folder}")
+                else:
+                    st.error("❌ Process Halting. One or more camera snapshots failed the compliance rubric.")
 
 # ==========================================
 # VIEW 2: SMOLLAN ADMIN DASHBOARD
