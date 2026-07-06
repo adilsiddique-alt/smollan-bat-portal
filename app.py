@@ -7,11 +7,12 @@ import csv
 import pandas as pd
 from datetime import datetime
 import time
-import shutil  # <-- Added to easily handle nested folder deletion on system resets
+import shutil
 
 # 1. PAGE SETUP & CORPORATE STYLING
 st.set_page_config(page_title="Smollan BAT Portal", page_icon="📸", layout="centered")
 
+# Master CSS Stylesheet (Slate Base, Emerald Green Accents, Clean Navigation Pills)
 st.markdown("""
     <style>
     /* Main Background & Text Colors */
@@ -21,12 +22,18 @@ st.markdown("""
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
     
-    /* SLEEK SIDEBAR NAVIGATION PACKAGING */
+    /* 🚫 HIDE THE DEPLOYER TOOLBAR COMPLETELY (Removes Fork, GitHub & Status Header) */
+    header[data-testid="stHeader"] {
+        display: none !important;
+    }
+    
+    /* 1. SLEEK SIDEBAR NAVIGATION PACKAGING */
     [data-testid="stSidebar"] {
         background-color: #090D16 !important; 
         border-right: 1px solid #1E293B;
     }
     
+    /* Style the Navigation Menu header text */
     div[data-testid="stRadio"] [data-testid="stWidgetLabel"] p {
         color: #64748B !important;
         font-size: 11px !important;
@@ -36,10 +43,12 @@ st.markdown("""
         margin-bottom: 12px !important;
     }
     
+    /* Tighten the spacing between button options */
     div[data-testid="stRadio"] > div {
         gap: 10px !important; 
     }
     
+    /* Transform options into wide, clean menu buttons */
     div[data-testid="stRadio"] label {
         display: flex !important;
         align-items: center !important;
@@ -53,6 +62,7 @@ st.markdown("""
         cursor: pointer;
     }
     
+    /* Active State styling (Smollan operational green glow) */
     div[data-testid="stRadio"] label:has(input[checked]) {
         border-color: #10B981 !important;
         background: linear-gradient(135deg, #10B981 0%, #059669 100%) !important;
@@ -61,17 +71,19 @@ st.markdown("""
         box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
     }
     
+    /* Target and erase ONLY the custom radio circle icon cleanly */
     div[data-testid="stCustomControl"] {
         display: none !important;
     }
     
+    /* Enforce clear, readable font positioning for button text */
     div[data-testid="stRadio"] label div[data-testid="stMarkdownContainer"] p {
         margin: 0px !important;
         font-size: 14px !important;
         color: inherit !important;
     }
 
-    /* MAIN INTERFACE CARD STYLE */
+    /* 2. MAIN INTERFACE CARD STYLE */
     div[data-testid="stVerticalBlock"] > div:has(div.stSelectbox) {
         background-color: #1E293B; 
         padding: 24px;
@@ -99,6 +111,7 @@ st.markdown("""
         box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
     }
     
+    /* File Dropzone Style */
     section[data-testid="stFileUploadDropzone"] {
         background-color: #0F172A !important;
         border: 2px dashed #10B981 !important;
@@ -141,9 +154,8 @@ if view_mode == "Store Upload Portal":
         required_images = int(STORE_QUOTAS[selected_store])
         st.info(f"📋 **Target Quota:** This location requires **{required_images} unique display images** for successful logging.")
 
-# Read the API key securely from the cloud environment secrets
-# Change this line to use a variable name/label, NOT the real key string
-        client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
+        # Secure client setup reading variables from hidden dashboard secrets
+        client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"]) 
 
         uploaded_files = st.file_uploader(
             "Select display capture files:", 
@@ -214,7 +226,6 @@ if view_mode == "Store Upload Portal":
                         now = datetime.now()
                         timestamp = now.strftime("%Y-%m-%d_%H-%M-%S")
                         
-                        # DYNAMIC ENHANCEMENT: Create a dedicated folder for the current Year and Month
                         current_month_folder = now.strftime("%Y-%m")
                         target_monthly_path = os.path.join(STORAGE_FOLDER, current_month_folder)
                         
@@ -225,8 +236,6 @@ if view_mode == "Store Upload Portal":
 
                         for i, result in enumerate(temp_results):
                             new_filename = f"{clean_store_name}_{timestamp}_img{i+1}.jpg"
-                            
-                            # Save directly inside the dynamic month subfolder
                             save_path = os.path.join(target_monthly_path, new_filename)
                             result["img_obj"].convert('RGB').save(save_path, "JPEG")
                             
@@ -314,14 +323,12 @@ elif view_mode == "Smollan Admin Dashboard":
         st.write("Clear operational ledger and remove physical image archives ahead of the next monthly cycle.")
         
         if st.button("⚠️ Trigger Full System Reset for New Month"):
-            # A: Delete the Data Ledger Spreadsheet
             if os.path.exists(DB_FILE):
                 os.remove(DB_FILE)
                 
-            # B: Completely purge the old storage tree and restore a clean empty base root
             if os.path.exists(STORAGE_FOLDER):
-                shutil.rmtree(STORAGE_FOLDER)  # Safely erases all text, image subfolders, and binaries at once
-                os.makedirs(STORAGE_FOLDER)    # Recreates an empty root ready for the next cycle
+                shutil.rmtree(STORAGE_FOLDER)  
+                os.makedirs(STORAGE_FOLDER)    
                 
             st.success("🔄 Action complete. Database tables dropped and target photo storage directory purged cleanly.")
             time.sleep(2)
