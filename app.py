@@ -12,7 +12,6 @@ import shutil
 # 1. PAGE SETUP & CORPORATE STYLING
 st.set_page_config(page_title="Smollan BAT Portal", page_icon="📸", layout="centered")
 
-# Master CSS Stylesheet (Slate Base, Emerald Green Accents, Clean Navigation Pills)
 st.markdown("""
     <style>
     /* Main Background & Text Colors */
@@ -22,7 +21,7 @@ st.markdown("""
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
     
-    /* HIDE THE DEPLOYER TOOLBAR COMPLETELY (Removes Fork, GitHub & Status Header) */
+    /* HIDE THE DEPLOYER TOOLBAR COMPLETELY */
     header[data-testid="stHeader"] {
         display: none !important;
     }
@@ -135,50 +134,76 @@ if view_mode == "Store Upload Portal":
     st.write("Please select your outlet below and use your mobile camera to take fresh execution images.")
     st.markdown("---")
     
-    selected_store = st.selectbox("Select your Store:", ["Select a store..."] + ALL_STORES)
+    selected_store = st.selectbox("Select your Store:", ["Select a store..."] + ALL_STORES, key="store_selector_widget")
+
+    # Initialize Session State Memory lists for background tracking
+    if "captured_photos" not in st.session_state:
+        st.session_state.captured_photos = []
+    if "seen_hashes" not in st.session_state:
+        st.session_state.seen_hashes = set()
+    if "current_store_tracking" not in st.session_state:
+        st.session_state.current_store_tracking = ""
+
+    # If the user switches stores midway, instantly wipe the previous store's memory cache
+    if selected_store != st.session_state.current_store_tracking:
+        st.session_state.captured_photos = []
+        st.session_state.seen_hashes = set()
+        st.session_state.current_store_tracking = selected_store
 
     if selected_store != "Select a store...":
         required_images = int(STORE_QUOTAS[selected_store])
-        st.info(f"📋 **Target Quota:** This location requires **{required_images} live camera captures** for successful logging.")
+        current_count = len(st.session_state.captured_photos)
+        
+        st.info(f"📋 **Target Quota:** This location requires **{required_images} live camera captures**. (Snapped: {current_count}/{required_images})")
 
         client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"]) 
 
-        # DYNAMIC CAMERA GENERATION BLOCK
-        captured_images = []
-        seen_hashes = set()
-        duplicate_count = 0
-
-        st.markdown("### 📷 Complete Your Check-ins:")
-        for i in range(required_images):
-            # Render individual sequential phone camera shutters
-            photo = st.camera_input(f"Capture Display View {i+1} of {required_images}", key=f"camera_slot_{i}")
+        # STEP A: IF QUOTA NOT MET, SHOW THE SINGLE CAMERA INTERFACE
+        if current_count < required_images:
+            st.markdown(f"### 📷 Position Camera for Capture #{current_count + 1}:")
+            
+            # Singular camera feed viewport instance
+            photo = st.camera_input("Snap View", key=f"single_lens_instance_{current_count}")
             
             if photo:
                 file_bytes = photo.read()
                 file_hash = hashlib.md5(file_bytes).hexdigest()
                 photo.seek(0)
                 
-                # Double-check that they didn't just point the phone at the same static view twice
-                if file_hash not in seen_hashes:
-                    seen_hashes.add(file_hash)
-                    captured_images.append(photo)
+                if file_hash not in st.session_state.seen_hashes:
+                    st.session_state.seen_hashes.add(file_hash)
+                    # Append raw image object along with metadata memory pointer
+                    st.session_state.captured_photos.append(photo)
+                    st.rerun() # Refresh layout to step forward to next sequence marker
                 else:
-                    duplicate_count += 1
+                    st.error("⚠️ Duplicate view detected. Please shift alignment to capture a distinct segment.")
+        else:
+            st.success("✅ All required captures complete! Ready to submit verification audit.")
 
-        if duplicate_count > 0:
-            st.warning("⚠️ Warning: Identical snapshot layout detected. Please capture distinct matching visual segments.")
+        # STEP B: RENDER GALLERY REVIEW FOR THE MANAGER
+        if current_count > 0:
+            st.markdown("---")
+            st.markdown("### 🖼️ Captured Layout Review Ledger:")
+            
+            # Display inline thumbnail images so the agent knows what's saved
+            cols = st.columns(min(current_count, 4))
+            for index, cached_file in enumerate(st.session_state.captured_photos):
+                with cols[index % min(current_count, 4)]:
+                    st.image(cached_file, caption=f"Capture {index + 1}", width=120)
+            
+            if st.button("🔄 Clear Captures & Restart"):
+                st.session_state.captured_photos = []
+                st.session_state.seen_hashes = set()
+                st.rerun()
 
-        # Display progress tracking bar text
-        st.write(f"Validated unique captures: **{len(captured_images)} / {required_images}**")
-
-        if st.button("🚀 Run Quality Control & Submit Audit"):
-            if len(captured_images) < required_images:
-                st.error(f"❌ Submission denied. You have only captured {len(captured_images)} layout views, but this profile requires exactly {required_images} completed views.")
-            else:
+        # STEP C: RUN SUBMISSION ACTION TRIGGER
+        if current_count == required_images:
+            st.markdown("---")
+            if st.button("🚀 Run Quality Control & Submit Audit"):
                 all_passed = True
                 temp_results = []
                 
-                for index, file in enumerate(captured_images):
+                for index, file in enumerate(st.session_state.captured_photos):
                     st.markdown(f"### 🔍 Auditing Capture {index + 1}...")
                     img = Image.open(file)
                     st.image(img, width=320)
@@ -186,7 +211,6 @@ if view_mode == "Store Upload Portal":
                     try:
                         with open("prompt.txt", "r", encoding="utf-8") as f:
                             prompt = f.read()
-                        replace_rules = True
                     except FileNotFoundError:
                         st.error("Missing rule configuration file: prompt.txt")
                         st.stop()
@@ -237,8 +261,12 @@ if view_mode == "Store Upload Portal":
                             writer.writerow([timestamp, selected_store, current_month_folder, new_filename, short_report])
                     
                     st.success(f"💾 ARCHIVED! Verification complete. Images filed securely under directory: /{current_month_folder}")
+                    
+                    # Wipe memory cache completely on execution success
+                    st.session_state.captured_photos = []
+                    st.session_state.seen_hashes = set()
                 else:
-                    st.error("❌ Process Halting. One or more camera snapshots failed the compliance rubric.")
+                    st.error("❌ Process Halting. One or more camera snapshots failed the compliance rubric. Reset captures and try again.")
 
 # ==========================================
 # VIEW 2: SMOLLAN ADMIN DASHBOARD
