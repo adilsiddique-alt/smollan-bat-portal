@@ -161,6 +161,7 @@ if view_mode == "Store Upload Portal":
             "Select display capture files:", 
             type=["jpg", "jpeg", "png", "heic", "heif", "JPG", "JPEG", "PNG"], 
             accept_multiple_files=True
+            key="field_portal_uploader"
         )
 
         if uploaded_files:
