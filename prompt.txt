@@ -12,11 +12,10 @@ Think about these 4 main areas when checking the photo:
 - Does the picture actually capture all the items it is supposed to show?
 
 3. STOCK & COMPLIANCE (Cigarettes & Vuse Products)
-- For Traditional Cigarettes: Are all cigarette packs facing perfectly forward? Reject if any pack is sideways, upside down, or backwards.
-- For Vuse Pods & Devices: Are all flavour box packages front-facing, upright, and grouped neatly by flavour? Reject if they are mixed up or messy.
+- For Traditional Cigarettes: Are all packs facing perfectly forward? Reject if any pack is sideways, upside down, or backwards.
+- For Vuse Pods & Devices & Velo cans : Are all flavour box packages front-facing, upright, and grouped neatly by flavour? Reject if they are mixed up or messy.
 - For Vuse Device Testers/Displays: Are the devices standing completely straight in their slots or docks? Reject if a device is missing from its display slot, lying flat, or upside down.
 - Are there ugly, messy gaps or holes in the shelves? Stock must look full and neat.
-- Are the price tags straight, visible, and placed correctly under the right product or flavour?
 
 4. CLEANLINESS & NEATNESS (COUNTER & CABLE HYGIENE)
 - Is the counter or stand clean? Reject if there is random rubbish, plastic wrappers, keys, cellphones, delivery boxes, or staff personal items sitting on or around the display area.
